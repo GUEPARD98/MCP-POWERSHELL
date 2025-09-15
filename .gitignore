@@ -1,0 +1,114 @@
+# ===========================
+# SSH-PowerShell MCP Server
+# .gitignore
+# ===========================
+
+# === NODE.JS ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.npm
+.node_repl_history
+
+# === ENVIRONMENT VARIABLES ===
+# Excluir archivos de configuración con datos sensibles
+config/.env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Mantener archivos de ejemplo (seguros para compartir)
+!config/.env.example
+!config/.env.development
+!config/.env.production
+!config/.env.test
+
+# === SSH KEYS (CRITICAL - NEVER COMMIT) ===
+*.pem
+*.key
+*_rsa
+*_dsa
+*_ecdsa
+*_ed25519
+*.ppk
+.ssh/
+ssh-keys/
+keys/
+
+# === LOGS ===
+logs/
+*.log
+audit-*.log
+ssh-mcp-*.log
+
+# === TEMP FILES ===
+tmp/
+temp/
+.tmp
+*.tmp
+*.temp
+
+# === OS SPECIFIC ===
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Linux
+*~
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === BACKUP FILES ===
+*.bak
+*.backup
+*.old
+*.orig
+
+# === CONFIG FILES WITH SECRETS ===
+config/production.json
+config/secrets.json
+claude_desktop_config_local.json
+
+# === CERTIFICATES ===
+*.crt
+*.cert
+*.cer
+*.p12
+*.pfx
+
+# === DATABASE ===
+*.db
+*.sqlite
+*.sqlite3
+
+# === COVERAGE ===
+coverage/
+.nyc_output/
+
+# === MISC ===
+.cache/
+dist/
+build/

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ssh-powershell": {
+      "command": "node",
+      "args": ["D:\\GOOSE-CLEAN\\src\\index.js"]
+    }
+  }
+}

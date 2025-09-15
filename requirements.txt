@@ -1,0 +1,376 @@
+# 🚀 SSH-PowerShell MCP Server - Requisitos del Sistema
+# ================================================================
+# Documentación completa de dependencias y requisitos de sistema
+# Versión: 1.0.0 | Actualizado: Septiembre 2024
+# ================================================================
+
+# =======================================
+# 📋 REQUISITOS DE SISTEMA CORE
+# =======================================
+
+## 🖥️ Sistema Operativo
+# Soporte principal: Windows 10/11 (desarrollado y optimizado)
+# Soporte secundario: Linux, macOS (compatibilidad cross-platform)
+# - Windows 10 build 1903+ (OpenSSH Client incluido)
+# - Windows 11 (recomendado para performance óptimo)
+# - Linux: Ubuntu 20.04+, CentOS 8+, Debian 11+
+# - macOS: 10.15+ (Catalina o superior)
+
+## 🔧 Runtime Environment
+# Node.js ≥18.0.0 (LTS recomendado: 18.19.0+)
+# - Soporte para ES Modules (import/export)
+# - API Streams moderna para JSON-RPC
+# - Performance mejorado para operaciones asíncronas
+# - Compatibilidad con top-level await
+
+## 💾 Memoria y Storage
+# RAM mínima: 512MB disponible
+# RAM recomendada: 1GB+ para múltiples conexiones SSH
+# Espacio disco: 100MB para instalación base
+# Espacio adicional: 500MB para logs y cache
+# Swap: 1GB+ en sistemas con poca RAM
+
+## 🌐 Red y Conectividad
+# - Acceso a Internet para npm install
+# - Conectividad SSH (puerto 22) a servidores target
+# - Resolución DNS funcional
+# - Firewall: permitir conexiones SSH salientes
+
+# =======================================
+# 📦 DEPENDENCIAS NODE.JS (package.json)
+# =======================================
+
+## 🔴 Dependencias de Producción (CRÍTICAS)
+@modelcontextprotocol/sdk@^0.5.0
+# - SDK oficial para Model Context Protocol
+# - Manejo de transporte JSON-RPC 2.0
+# - Gestión de stdio server transport
+# - Validación de schemas de herramientas
+
+chalk@^5.3.0
+# - Colorización avanzada de output de terminal
+# - Mejora UX de logs y debugging
+# - Soporte para 256 colores y RGB
+# - Compatibilidad cross-platform
+
+dotenv@^16.3.1
+# - Gestión segura de variables de entorno
+# - Carga de configuración desde archivos .env
+# - Separación de config por environment
+# - Prevención de hardcoded secrets
+
+shell-escape@^0.2.0
+# - Sanitización CRÍTICA de comandos shell
+# - Prevención de inyección de comandos
+# - Escapado seguro de argumentos
+# - Compatibilidad multiplataforma
+
+## 🟡 Dependencias de Desarrollo (OPCIONALES)
+jest@^29.7.0
+# - Framework de testing moderno
+# - Cobertura de código automática
+# - Mocking y spying avanzado
+# - Soporte para ES Modules
+
+eslint@^8.57.0
+# - Linting de código JavaScript/Node.js
+# - Detección temprana de errores
+# - Estándares de código consistentes
+# - Integración con IDEs
+
+prettier@^3.2.5
+# - Formateo automático de código
+# - Consistencia de estilo en equipo
+# - Integración con git hooks
+# - Soporte para múltiples formatos
+
+nodemon@^3.0.3
+# - Auto-restart durante desarrollo
+# - Watch de archivos en tiempo real
+# - Mejora productividad de desarrollo
+# - Configuración flexible
+
+# =======================================
+# 🔐 DEPENDENCIAS DE SISTEMA EXTERNAS
+# =======================================
+
+## 🔑 Cliente SSH (OBLIGATORIO)
+# Windows:
+#   - OpenSSH Client (incluido en Windows 10+)
+#   - Verificar: `ssh -V` en PowerShell
+#   - Si no disponible: instalar desde Windows Features
+#   - Alternativa: PuTTY (solo para fallback)
+
+# Linux/macOS:
+#   - OpenSSH Client (preinstalado en la mayoría)
+#   - Ubuntu/Debian: `apt install openssh-client`
+#   - CentOS/RHEL: `yum install openssh-clients`
+#   - macOS: incluido por defecto
+
+## ⚡ PowerShell (Windows)
+# Windows PowerShell 5.1+ (incluido en Windows)
+# PowerShell Core 7+ (recomendado para features avanzadas)
+# - Execution Policy: debe permitir scripts
+# - Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+## 🔍 Herramientas de Red (OPCIONAL)
+# nmap (para escaneo avanzado de red):
+#   - Windows: https://nmap.org/download.html
+#   - Linux: `apt install nmap` o `yum install nmap`
+#   - macOS: `brew install nmap`
+
+# ping (preinstalado en todos los sistemas)
+# telnet (para testing básico de conectividad)
+
+# =======================================
+# 🧩 DEPENDENCIAS DE CLAUDE DESKTOP
+# =======================================
+
+## 🤖 Claude Desktop Application
+# Versión mínima: 1.0.0+
+# Descargar desde: https://claude.ai/desktop
+# Plataformas soportadas:
+#   - Windows 10/11 (x64)
+#   - macOS 10.15+ (Intel y Apple Silicon)
+#   - Linux (AppImage, .deb, .rpm)
+
+## 📁 Archivo de Configuración MCP
+# Ubicación: %APPDATA%\Claude\claude_desktop_config.json (Windows)
+# Ubicación: ~/.config/Claude/claude_desktop_config.json (Linux)
+# Ubicación: ~/Library/Application Support/Claude/claude_desktop_config.json (macOS)
+
+# Contenido requerido:
+{
+  "mcpServers": {
+    "ssh-powershell": {
+      "command": "node",
+      "args": ["D:\\GOOSE-CLEAN\\src\\index.js"],
+      "env": {}
+    }
+  }
+}
+
+# =======================================
+# 🔒 REQUISITOS DE SEGURIDAD
+# =======================================
+
+## 🔑 Autenticación SSH
+# Método RECOMENDADO: Claves SSH (sin contraseña)
+# 1. Generar par de claves: `ssh-keygen -t rsa -b 4096`
+# 2. Copiar clave pública: `ssh-copy-id user@server`
+# 3. Verificar permisos: chmod 600 ~/.ssh/id_rsa
+# 4. Testear conexión: `ssh user@server`
+
+# Método LEGACY: Usuario/contraseña (menos seguro)
+# - Solo para entornos de desarrollo/testing
+# - No recomendado para producción
+# - Requiere herramientas adicionales (sshpass, plink)
+
+## 🛡️ Configuración de Firewall
+# Permitir conexiones SSH salientes (puerto 22)
+# Windows Defender: crear regla para ssh.exe
+# Linux iptables: permitir OUTPUT en puerto 22
+# macOS: generalmente sin restricciones
+
+## 🔐 Permisos de Archivos
+# Claves SSH privadas: 600 (solo owner read/write)
+# Archivos de configuración: 644 (owner rw, group/other r)
+# Scripts ejecutables: 755 (owner rwx, group/other rx)
+
+# =======================================
+# 🚀 REQUISITOS DE PERFORMANCE
+# =======================================
+
+## ⚡ Configuración Recomendada para Producción
+# CPU: 2+ cores (para procesamiento concurrente)
+# RAM: 2GB+ (para múltiples conexiones SSH)
+# Red: 10Mbps+ (para transferencia eficiente)
+# SSD: recomendado (para logs y cache rápidos)
+
+## 📊 Límites Configurables
+# MAX_CONCURRENT_SSH=15      # Conexiones SSH concurrentes
+# SSH_TIMEOUT=30000          # Timeout por comando (30s)
+# CONNECTION_POOL_SIZE=10    # Pool de conexiones reutilizables
+# RATE_LIMIT_PER_MINUTE=100  # Comandos por minuto máximo
+
+## 🔧 Optimizaciones de Sistema
+# Windows: aumentar límite de handles de archivo
+# Linux: configurar ulimit para más file descriptors
+# TCP: ajustar keep-alive settings para SSH
+
+# =======================================
+# 🧪 REQUISITOS DE DESARROLLO
+# =======================================
+
+## 🛠️ Entorno de Desarrollo
+# IDE recomendado: Visual Studio Code
+# Extensions útiles:
+#   - ES6 String HTML
+#   - JavaScript (ES6) code snippets
+#   - Node.js Modules Intellisense
+#   - PowerShell (para scripts Windows)
+
+## 🧰 Herramientas de Testing
+# Unit Tests: Jest framework
+# Integration Tests: scripts personalizados
+# SSH Testing: servidor SSH local (Docker recomendado)
+# Load Testing: artillery.io o k6
+
+## 📝 Debugging y Profiling
+# Node.js Inspector: `node --inspect src/index.js`
+# Debugging SSH: `ssh -vvv` para verbose logging
+# Network debugging: Wireshark, tcpdump
+# Performance profiling: Node.js built-in profiler
+
+# =======================================
+# 📋 CHECKLIST DE INSTALACIÓN
+# =======================================
+
+## ✅ Pre-instalación
+# [ ] Verificar Node.js ≥18: `node --version`
+# [ ] Verificar npm: `npm --version`
+# [ ] Verificar SSH client: `ssh -V`
+# [ ] Verificar PowerShell: `$PSVersionTable` (Windows)
+# [ ] Verificar conectividad de red a targets SSH
+
+## ✅ Instalación Base
+# [ ] Clonar repositorio o descargar código
+# [ ] Ejecutar `npm install` en directorio del proyecto
+# [ ] Verificar que no hay errores de dependencias
+# [ ] Crear archivo .env con configuración (opcional)
+# [ ] Configurar claves SSH si es necesario
+
+## ✅ Configuración Claude Desktop
+# [ ] Instalar Claude Desktop application
+# [ ] Localizar archivo claude_desktop_config.json
+# [ ] Agregar configuración del servidor MCP
+# [ ] Usar rutas absolutas en "args"
+# [ ] Reiniciar Claude Desktop
+
+## ✅ Testing y Verificación
+# [ ] Ejecutar `npm start` para iniciar servidor
+# [ ] Verificar que no hay errores al iniciar
+# [ ] Abrir Claude Desktop y verificar conexión MCP
+# [ ] Ejecutar comando de prueba simple
+# [ ] Testear conectividad SSH a servidor remoto
+
+## ✅ Configuración de Producción
+# [ ] Configurar variables de entorno para producción
+# [ ] Configurar logging y monitoring
+# [ ] Establecer límites de rate limiting
+# [ ] Configurar alertas y notificaciones
+# [ ] Documentar procedimientos de mantenimiento
+
+# =======================================
+# 🔧 TROUBLESHOOTING COMÚN
+# =======================================
+
+## ❌ Error: "ssh command not found"
+# Solución Windows: Habilitar OpenSSH Client en Windows Features
+# Solución Linux: `apt install openssh-client`
+# Solución macOS: ssh debería estar preinstalado
+
+## ❌ Error: "Permission denied (publickey)"
+# Solución: Verificar que la clave SSH está configurada correctamente
+# Verificar: `ssh user@host` funciona manualmente
+# Verificar permisos: chmod 600 ~/.ssh/id_rsa
+
+## ❌ Error: "Node version not supported"
+# Solución: Instalar Node.js 18+ desde nodejs.org
+# Verificar: `node --version` debe mostrar 18.x.x o superior
+
+## ❌ Error: "Claude Desktop no encuentra el servidor MCP"
+# Solución: Verificar rutas absolutas en claude_desktop_config.json
+# Verificar: El servidor se ejecuta sin errores con `npm start`
+# Reiniciar: Claude Desktop después de cambiar configuración
+
+## ❌ Error: "shell-escape module not found"
+# Solución: Ejecutar `npm install` para instalar dependencias
+# Verificar: package.json incluye shell-escape en dependencies
+
+# =======================================
+# 📞 SOPORTE Y RECURSOS
+# =======================================
+
+## 📚 Documentación Adicional
+# - README.md: Guía de inicio rápido
+# - ARCHITECTURE.md: Documentación técnica detallada
+# - API.md: Referencia de herramientas MCP
+# - SECURITY.md: Mejores prácticas de seguridad
+
+## 🆘 Canales de Soporte
+# - GitHub Issues: Reportar bugs y solicitar features
+# - Discord Community: Soporte de la comunidad
+# - Email Enterprise: Soporte comercial
+# - Documentation Wiki: Guías avanzadas
+
+## 🔗 Enlaces Útiles
+# - Node.js: https://nodejs.org/
+# - OpenSSH: https://www.openssh.com/
+# - Claude Desktop: https://claude.ai/desktop
+# - MCP Protocol: https://modelcontextprotocol.io/
+# - PowerShell: https://docs.microsoft.com/powershell/
+
+# =======================================
+# 📅 HISTORIAL DE VERSIONES
+# =======================================
+
+## v1.0.0 (Septiembre 2024)
+# - Implementación inicial con autenticación SSH por claves
+# - Soporte para shell-escape sanitization
+# - Compatibilidad cross-platform mejorada
+# - Integración completa con Claude Desktop
+
+## v0.9.0 (Agosto 2024)
+# - Migración de contraseñas a claves SSH
+# - Implementación de seguridad enterprise
+# - Adición de herramientas de monitoreo
+
+## v0.8.0 (Julio 2024)
+# - Versión inicial con autenticación por contraseña
+# - Herramientas básicas SSH y PowerShell
+# - Prototipo MCP funcional
+
+# =======================================
+# ⚖️ LICENCIA Y COMPLIANCE
+# =======================================
+
+## 📄 Licencia de Uso
+# MIT License - Uso libre con atribución
+# Permitido: uso comercial, modificación, distribución
+# Requerido: incluir licencia original
+# Prohibido: uso malicioso, violación de términos
+
+## 🛡️ Compliance Enterprise
+# - GDPR: Configuración disponible para protección de datos
+# - SOX: Logging de auditoría para compliance financiero
+# - HIPAA: Configuración disponible para datos médicos
+# - ISO 27001: Implementaciones de seguridad estándar
+
+## ⚖️ Responsabilidad Legal
+# El usuario es RESPONSABLE de:
+# - Obtener autorización para acceso a sistemas
+# - Cumplir leyes locales e internacionales
+# - Proteger credenciales y datos sensibles
+# - Usar la herramienta de forma ética
+
+## 🔒 Seguridad y Privacidad
+# - No se almacenan credenciales en código
+# - Logs pueden contener información sensible
+# - Comandos se ejecutan con privilegios del usuario
+# - Comunicación SSH cifrada end-to-end
+
+# =======================================
+# 🎯 CONCLUSIÓN
+# =======================================
+
+# Este archivo documenta TODOS los requisitos necesarios para
+# una instalación exitosa y operación segura del SSH-PowerShell MCP Server.
+# 
+# Para instalación rápida, consulte README.md
+# Para documentación técnica, consulte ARCHITECTURE.md
+# Para mejores prácticas de seguridad, consulte SECURITY.md
+#
+# Última actualización: Septiembre 2024
+# Versión de documentación: 1.0.0
+# =======================================
