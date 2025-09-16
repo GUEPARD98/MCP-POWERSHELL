@@ -108,6 +108,91 @@ const server = new Server(
   }
 );
 
+// Sistema de rate limiting simple
+class RateLimiter {
+  constructor(maxRequests = 100, windowMs = 60000) { // 100 requests per minute by default
+    this.maxRequests = parseInt(process.env.RATE_LIMIT_PER_MINUTE) || maxRequests;
+    this.windowMs = windowMs;
+    this.requests = [];
+  }
+  
+  checkLimit() {
+    const now = Date.now();
+    // Limpiar requests antiguos
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+    
+    if (this.requests.length >= this.maxRequests) {
+      return false; // Rate limit exceeded
+    }
+    
+    this.requests.push(now);
+    return true;
+  }
+  
+  getRemainingRequests() {
+    const now = Date.now();
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+    return Math.max(0, this.maxRequests - this.requests.length);
+  }
+}
+
+// Pool simple de conexiones SSH para reutilización
+class ConnectionPool {
+  constructor(maxSize = 5) {
+    this.maxSize = parseInt(process.env.CONNECTION_POOL_SIZE) || maxSize;
+    this.connections = new Map(); // host+user -> { lastUsed, inUse }
+    this.activeConnections = 0;
+  }
+  
+  getConnectionKey(host, user) {
+    return `${user}@${host}`;
+  }
+  
+  canCreateConnection() {
+    return this.activeConnections < this.maxSize;
+  }
+  
+  markConnectionUsed(host, user) {
+    const key = this.getConnectionKey(host, user);
+    this.connections.set(key, {
+      lastUsed: Date.now(),
+      inUse: true
+    });
+    this.activeConnections++;
+  }
+  
+  releaseConnection(host, user) {
+    const key = this.getConnectionKey(host, user);
+    if (this.connections.has(key)) {
+      this.connections.set(key, {
+        lastUsed: Date.now(),
+        inUse: false
+      });
+      this.activeConnections = Math.max(0, this.activeConnections - 1);
+    }
+  }
+  
+  cleanup() {
+    const now = Date.now();
+    const maxAge = 5 * 60 * 1000; // 5 minutes
+    
+    for (const [key, conn] of this.connections.entries()) {
+      if (!conn.inUse && (now - conn.lastUsed) > maxAge) {
+        this.connections.delete(key);
+      }
+    }
+  }
+}
+
+// Instancias globales
+const rateLimiter = new RateLimiter();
+const connectionPool = new ConnectionPool();
+
+// Limpiar pool periódicamente
+setInterval(() => {
+  connectionPool.cleanup();
+}, 5 * 60 * 1000); // Cada 5 minutos
+
 // Configuración del servidor MCP
 // Función para detectar el ejecutable de PowerShell disponible
 function getPowerShellExecutable() {
@@ -219,7 +304,7 @@ function executePowerShell(command, timeout = null) {
   });
 }
 
-// Función para conectar SSH con autenticación por claves mejorada
+// Función para conectar SSH con autenticación por claves mejorada y pooling
 async function executeSSHCommand(host, user, command, keyPath = null, timeout = null) {
   const startTime = Date.now();
   
@@ -234,7 +319,15 @@ async function executeSSHCommand(host, user, command, keyPath = null, timeout = 
     throw new Error('Parámetro command es requerido y debe ser una cadena válida');
   }
   
+  // Verificar pool de conexiones
+  if (!connectionPool.canCreateConnection()) {
+    throw new Error(`Máximo de conexiones SSH concurrentes alcanzado (${connectionPool.maxSize}). Intente más tarde.`);
+  }
+  
   log('info', 'Iniciando conexión SSH', { host, user, command: command.substring(0, 100) });
+  
+  // Marcar conexión como en uso
+  connectionPool.markConnectionUsed(host, user);
   
   try {
     // Obtener ruta de clave SSH
@@ -270,7 +363,11 @@ async function executeSSHCommand(host, user, command, keyPath = null, timeout = 
         user,
         keyPath: actualKeyPath,
         sanitizedCommand,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
+        connectionPoolStatus: {
+          active: connectionPool.activeConnections,
+          maxSize: connectionPool.maxSize
+        }
       }
     };
     
@@ -292,6 +389,9 @@ async function executeSSHCommand(host, user, command, keyPath = null, timeout = 
     });
     
     throw new Error(`Error SSH en ${host}: ${error.message}`);
+  } finally {
+    // Liberar conexión del pool
+    connectionPool.releaseConnection(host, user);
   }
 }
 
@@ -392,12 +492,38 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
-// Manejador de ejecución de herramientas con manejo de errores mejorado
+// Manejador de ejecución de herramientas con manejo de errores mejorado y rate limiting
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   const startTime = Date.now();
   
-  log('info', `Ejecutando herramienta: ${name}`, { args });
+  // Verificar rate limiting
+  if (!rateLimiter.checkLimit()) {
+    const remainingRequests = rateLimiter.getRemainingRequests();
+    log('warn', `Rate limit excedido para herramienta: ${name}`, { remainingRequests });
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `⚠️ Rate limit excedido. Máximo ${rateLimiter.maxRequests} requests por minuto. Quedan: ${remainingRequests} requests disponibles.`
+        }
+      ],
+      isError: true,
+      metadata: {
+        tool: name,
+        error: 'Rate limit exceeded',
+        rateLimitInfo: {
+          maxRequests: rateLimiter.maxRequests,
+          remainingRequests: remainingRequests,
+          windowMs: rateLimiter.windowMs
+        },
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+  
+  log('info', `Ejecutando herramienta: ${name}`, { args, remainingRequests: rateLimiter.getRemainingRequests() });
   
   try {
     switch (name) {
@@ -425,6 +551,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             user: args.user,
             exitCode: sshResult.exitCode,
             executionTime: sshResult.executionTime || sshResult.metadata?.executionTime,
+            connectionPoolStatus: sshResult.metadata?.connectionPoolStatus,
+            rateLimitInfo: {
+              remainingRequests: rateLimiter.getRemainingRequests()
+            },
             timestamp: new Date().toISOString()
           }
         };
@@ -445,6 +575,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             tool: 'powershell_execute',
             exitCode: psResult.exitCode,
             executionTime: psResult.executionTime,
+            rateLimitInfo: {
+              remainingRequests: rateLimiter.getRemainingRequests()
+            },
             timestamp: new Date().toISOString()
           }
         };
@@ -487,6 +620,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             target: args.target,
             exitCode: scanResult.exitCode,
             executionTime: scanResult.executionTime,
+            rateLimitInfo: {
+              remainingRequests: rateLimiter.getRemainingRequests()
+            },
             timestamp: new Date().toISOString()
           }
         };
@@ -517,6 +653,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             port: port,
             exitCode: keyResult.exitCode,
             executionTime: keyResult.executionTime,
+            rateLimitInfo: {
+              remainingRequests: rateLimiter.getRemainingRequests()
+            },
             timestamp: new Date().toISOString()
           }
         };
@@ -540,6 +679,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         tool: name,
         error: error.message,
         executionTime,
+        rateLimitInfo: {
+          remainingRequests: rateLimiter.getRemainingRequests()
+        },
         timestamp: new Date().toISOString(),
         args: args
       }
@@ -575,6 +717,8 @@ async function main() {
     // Mostrar información de configuración
     log('info', 'Verificaciones del sistema:', checks);
     log('info', `Configuración cargada: timeout=${process.env.COMMAND_TIMEOUT || DEFAULT_CONFIG.COMMAND_TIMEOUT}ms, log_level=${process.env.LOG_LEVEL || DEFAULT_CONFIG.LOG_LEVEL}`);
+    log('info', `Rate limiting: ${rateLimiter.maxRequests} requests/min, Connection pool: ${connectionPool.maxSize} conexiones`);
+    log('info', `PowerShell executable: ${getPowerShellExecutable()}`);
     
     const transport = new StdioServerTransport();
     await server.connect(transport);
