@@ -6,9 +6,13 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-0.5.0-blue)](https://github.com/modelcontextprotocol/sdk)
 
+<a href="https://glama.ai/mcp/servers/@GUEPARD98/MCP-POWERSHELL">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@GUEPARD98/MCP-POWERSHELL/badge" alt="SSH-PowerShell Server MCP server" />
+</a>
+
 ## ✨ Features
 
-- � **Secure SSH command execution** on remote servers
+- 🔐 **Secure SSH command execution** on remote servers
 - ⚡ **Local PowerShell integration** for Windows automation  
 - 🛡️ **Enterprise security** with SSH key authentication
 - 🌐 **Network scanning** and SSH port discovery
@@ -16,7 +20,7 @@
 - 📊 **Comprehensive logging** and error handling
 - 🎯 **Claude Desktop optimized** for seamless AI integration
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ```powershell
 # Clone repository
@@ -155,7 +159,7 @@ The server automatically configures Claude Desktop. Manual setup:
 }
 ```
 
-## � Security
+## 🔒 Security
 
 - ✅ **SSH key authentication** only (no passwords)
 - ✅ **Command sanitization** with shell-escape
